@@ -1,8 +1,13 @@
 #include <Eigen/Dense>
-#include "flux_matrix.hpp"
+#include <iostream>
+#include "plate.hpp"
+
 
 int main() {
 	ArrayXXd v;
-	v = ArrayXXd::Constant(5, 5, 1);
-	flux_matrix<double> flux = flux_matrix<double>(v, 0.1);
+	ArrayXXd T;
+	v = ArrayXXd  ::Constant(20, 20, 1);
+	plate<double> heated_plate = plate<double>(v, 0.1);
+	T = heated_plate.temperature();
+	std::cout << T << std::endl;
 }
