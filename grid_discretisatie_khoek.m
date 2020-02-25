@@ -1,10 +1,8 @@
-function T = grid_discretisatie_khoek(v)
-% F*T = Q
+function [T, K] = grid_discretisatie_khoek(v)
+% K*T = Q
+
+n = round(sqrt(length(v))); v = reshape(v,n,n); 
 n = size(v,1) + 1;
-% vnonce = v;
-% v = zeros(n+4);
-% v(3:n+2,3:n+2) = vnonce;
-% n = size(v,1);
 
 sizex = 0.01/2;
 sizez = 0.001;
@@ -52,18 +50,21 @@ for i = 2:n-1
     K(pos(i,n),pos(i,n-1)) = -1;
 end
 
-function k = mean(k1, k2)
-    k = (k1 + k2)/2;
-end
+
 
 % spy(F);
-K = sparse(K);
-T = K\Q;
-T = reshape(T,n,n);
+Ksparse = sparse(K);
+T = Ksparse\Q;
+% T = reshape(T,n,n);
 % T = T(3:n-2,3:n-2);
 
-function ij = pos(i,j)
-    N = size(v,1) + 1;
-    ij = i+N.*(j-1);
-end
+    function k = mean(k1, k2)
+        k = (k1 + k2)/2;
+%         k = 2*k1*k2/(k1 + k2);
+    end
+
+    function ij = pos(i,j)
+        N = size(v,1) + 1;
+        ij = i+N.*(j-1);
+    end
 end
