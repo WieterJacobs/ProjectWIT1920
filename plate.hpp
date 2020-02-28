@@ -20,7 +20,7 @@ template<typename scalar>
 		typedef Matrix<scalar, Dynamic, 1> DV;
 
 		scalar k_metal_ = 65.;
-		scalar k_plastic_ = .2;
+		scalar k_plastic_ = 0.2;
 		scalar size_;
 		scalar deltaz_;
 		int n_;
@@ -30,7 +30,9 @@ template<typename scalar>
 		DA v_;
 		scalar ldir_ = (.6 * n_);
 		mutable DV T_;
-
+		DV Q_;
+		SM K_;
+		SM DK_;
 		inline int pos(int i, int j) const
 		{
 			return(i + n_ * j);
@@ -53,27 +55,17 @@ template<typename scalar>
 		{
 			//todo
 		}
-		DV solve(SM lhs,DV rhs) const
-		{
-			SparseLU<SparseMatrix<double>, COLAMDOrdering<int>> solver;//checken of dit wel een goede keuze van solver is
-			solver.analyzePattern(lhs);
-			solver.factorize(lhs);
-			DV x(rhs.rows());
-			x = solver.solve(rhs);
-			return(x);
-		}
-		void set_temperature() const {
+		
+		void set_K() {
 			DA k = conductivity(v_);
-			SM K(N_, N_);
-			DV Q;
-			Q = DV::Constant(N_, 0);
+			Q_ = DV::Constant(N_, 0);
 			TV coefficients;
 			V w(4);
 			for (int i = 1; i < n_ - 1; ++i)
 			{
 				for (int j = 1; j < n_ - 1; ++j)
 				{
-					Q(pos(i, j)) = 2. * deltax_ * deltax_ / (size_ * size_ * deltaz_);
+					Q_(pos(i, j)) = 2. * deltax_ * deltax_ / (4 * size_ * size_ * deltaz_);
 					w[0] = meanh(k(i - 1, j - 1), k(i - 1, j));
 					w[1] = meanh(k(i, j - 1), k(i, j));
 					w[2] = meanh(k(i - 1, j - 1), k(i, j - 1));
@@ -98,7 +90,7 @@ template<typename scalar>
 				if (i >= ldir_)
 				{
 					coefficients.push_back(T(pos(i, 0), pos(i, 0), 1));
-					Q(pos(i, 0)) = 293;
+					Q_(pos(i, 0)) = 293;
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 1), 1));
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 2), -1));
 				}
@@ -110,26 +102,9 @@ template<typename scalar>
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 2), -1));
 				}
 			}
-			K.setFromTriplets(coefficients.begin(), coefficients.end());
-			T_ = this->solve(K, Q);
+			K_.setFromTriplets(coefficients.begin(), coefficients.end());
 		}
-	public:
-		plate(DA& v, scalar const size) :
-			size_(size),
-			deltaz_(.001),
-			n_(v.rows()),
-			deltax_(size_ / n_),
-			N_(n_* n_),
-			p_(1),
-			v_(v)
-			
-		{
-			set_temperature();
-		}
-		DA get_temperature() const {
-			return(T_);
-		}
-		SM DK() const &
+		void set_DK()
 		{
 			DA k = conductivity(v_);
 			TV coefficients;
@@ -151,14 +126,55 @@ template<typename scalar>
 					coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
 				}
 			}
-			SM DK(N_, (n_ - 1) * (n_ - 1));
-			DK.setFromTriplets(coefficients.begin(), coefficients.end());
-			return(DK);
+			DK_.setFromTriplets(coefficients.begin(), coefficients.end());
+		}
+	public:
+		plate(DA& v, scalar const size) :
+			size_(size),
+			deltaz_(.001),
+			n_(v.rows()),
+			deltax_(size_ / n_),
+			N_(n_* n_),
+			p_(1),
+			v_(v),
+			Q_(N_),
+			K_(N_,N_),
+			DK_(N_, (n_ - 1)* (n_ - 1))
+		{
+			set_K();
+			T_ = solve(K_, Q_);
+			set_DK();
+		}
+		SM get_K() 
+		{
+			return K_;
+		}
+		SM get_DK()
+		{
+			return DK_;
+		}
+		DA get_T() const &{
+			return(T_);
 		}
 		void set_p(scalar p) const {
 			p_ = p;
 		}
 		scalar get_p() const {
 			return(p_);
+		}
+		scalar get_n() const {
+			return n_;
+		}
+		scalar get_N() const {
+			return N_;
+		}
+		DV solve(SM lhs, DV rhs) const
+		{
+			SparseLU<SparseMatrix<double>, COLAMDOrdering<int>> solver;//checken of dit wel een goede keuze van solver is
+			solver.analyzePattern(lhs);
+			solver.factorize(lhs);
+			DV x(rhs.rows());
+			x = solver.solve(rhs);
+			return(x);
 		}
 };
