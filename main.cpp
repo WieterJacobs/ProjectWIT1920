@@ -17,8 +17,13 @@ int main() {
 	MatrixXd K = heated_plate.get_K();
 	MatrixXd DK = heated_plate.get_DK();
 	MatrixXd T = heated_plate.get_T();
+	MatrixXd cost_p = cost_f.derivative();
+	std::cout.precision(17);
+	std::cout << T << std::endl;
 	std::ofstream myfile;
+	
 	myfile.open("K_matrix.txt");
+	myfile.precision(17);
 	myfile << K << std::endl;
 	myfile.close();
 	myfile.open("DK_matrix.txt");
@@ -26,6 +31,9 @@ int main() {
 	myfile.close();
 	myfile.open("T_matrix.txt");
 	myfile << T << std::endl;
+	myfile.close();
+	myfile.open("cost_p_matrix.txt");
+	myfile << cost_p << std::endl;
 	myfile.close();
 	return 0;
 }

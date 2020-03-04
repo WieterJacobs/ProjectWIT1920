@@ -19,8 +19,6 @@ private:
 	{
 		cost_ = cost_f(new_plate.get_T());
 		DV lambda;
-		//std::cout << cost_T(new_plate.get_T()).transpose() << std::endl;
-		//std::cout << new_plate.get_K().transpose() << std::endl;
 		lambda = new_plate.solve(new_plate.get_K().transpose(), cost_T(new_plate.get_T()).transpose());
 		cost_p_ = -new_plate.get_DK().transpose()*lambda;
 		std::cout << cost_p_ << std::endl;
