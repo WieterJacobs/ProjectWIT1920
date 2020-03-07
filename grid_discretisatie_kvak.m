@@ -1,84 +1,71 @@
-function cost_p = afkookt(v,p)
+function T = grid_discretisatie_kvak(v)
+% F*T = Q
+n = size(v,1);
+% vnonce = v;
+% v = zeros(n+4);
+% v(3:n+2,3:n+2) = vnonce;
+% n = size(v,1);
 
-v = v(:);
-kder = p*v.^(p-1)*65 + (1 - p*v.^(p-1))*0.2;
-[T, K] = grid_discretisatie_khoek(v, p);
-
-n = round(sqrt(length(v))); v = reshape(v,n,n); 
-n = size(v,1) + 1;
+sizex = 0.01/2;
+sizez = 0.001;
+deltax = sizex/n;
+p = 1;
 k = v^p*65 + (1 - v^p)*0.2;
-T = T(:);
+K = zeros((n)^2);
+Q = zeros(n); Q = Q(:);
 
-lambda = K'\cost_T(T)';
-T = reshape(T,n,n);
+for i = 2:n-1
+    for j = 2:n-1
+        Q(pos(i,j)) = 2*deltax^2/(2*sizex)^2/sizez;
+        w = zeros(4,1);
+        w(1) = mean(k(i-1,j),k(i,j));
+        w(2) = mean(k(i+1,j),k(i,j));
+        w(3) = mean(k(i,j-1),k(i,j));
+        w(4) = mean(k(i,j+1),k(i,j));
 
-DK = zeros(n^2,(n-1)^2);
-
-for i = 1:n-1
-    for j = 1:n-1
-        try
-            north = dmean(k(i,j),k(i-1,j));
-        catch
-            north = 0;
-        end
-        try
-            south = dmean(k(i,j),k(i+1,j));
-        catch
-            south = 0;
-        end
-        try
-            east = dmean(k(i,j),k(i,j+1));
-        catch
-            east = 0;
-        end
-        try
-            west = dmean(k(i,j),k(i,j-1));
-        catch
-            west = 0;
-        end
-            
-      
-%         dK=[east+north, -east, 0, -north;
-%             -west, west+north, -north, 0;
-%             0, -south, south+west, -west;
-%             -south, 0, -east, south+east;
-%            ];
-        dK=[south+west, -south, 0, -west;
-            -south, east+south, -east, 0;
-            0, -east, east+north, -north;
-            -west, 0, -north, west+north;
-           ];
-        
-        Tij = [T(i+1,j) T(i+1,j+1) T(i,j+1) T(i,j)]';
-        col = dK*Tij;
-        
-        DK(pos(i+1,j),posk(i,j)) = col(1);
-        DK(pos(i+1,j+1),posk(i,j)) = col(2);
-        DK(pos(i,j+1),posk(i,j)) = col(3);
-        DK(pos(i,j),posk(i,j)) = col(4);
+        K(pos(i,j),pos(i-1,j)) = -w(1);
+        K(pos(i,j),pos(i+1,j)) = -w(2);
+        K(pos(i,j),pos(i,j-1)) = -w(3);
+        K(pos(i,j),pos(i,j+1)) = -w(4);
+        K(pos(i,j),pos(i,j)) = sum(w);
     end
 end
 
-cost_p = -lambda'*DK;
-cost_p = cost_p(:).*kder;
-% cost_p = reshape(cost_p,n-1,n-1);
+Dir = 1+round(.3*n):n-round(.3*n);
+Dir = 1+round(.6*n):n;
+
+for j = 1:n
+    K(pos(1,j),pos(1,j)) = 1;
+    K(pos(1,j),pos(2,j)) = -1;
+    K(pos(n,j),pos(n,j)) = 1;
+    K(pos(n,j),pos(n-1,j)) = -1;
+end
+for i = 2:n-1
+    if ismember(i, Dir)
+        K(pos(i,1),pos(i,1)) = 1;
+        Q(pos(i,1)) = 293;
+    else
+        K(pos(i,1),pos(i,1)) = 1;
+        K(pos(i,1),pos(i,2)) = -1;
+    end
+    K(pos(i,n),pos(i,n)) = 1;
+    K(pos(i,n),pos(i,n-1)) = -1;
+end
 
 
-    function c = cost_T(T)
-        c = ((T.^15).*(sum(T.^16)).^(-15/16))';
-    end
-     
-    function dk = dmean(k1, k2)
-       dk = 2*k2^2/(k1+k2)^2; 
-    end
+% spy(F);
+K = sparse(K);
+T = K\Q;
+T = reshape(T,n,n);
+% T = T(3:n-2,3:n-2);
 
-    function ij = posk(i,j)
-        N = size(v,1);
-        ij = i+N.*(j-1);
-    end
+function k = mean(k1, k2)
+    k = 2*k1*k2/(k1 + k2);
+end
 
-    function ij = pos(i,j)
-        N = size(v,1) + 1;
-        ij = i+N.*(j-1);
-    end
+function ij = pos(i,j)
+    N = size(v,1);
+    ij = i+N.*(j-1);
+end
+
 end
