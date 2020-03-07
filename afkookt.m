@@ -1,10 +1,11 @@
-function cost_p = afkookt(v)
+function cost_p = afkookt(v,p)
 
-[T, K] = grid_discretisatie_khoek(v);
+v = v(:);
+kder = p*v.^(p-1)*65 + (1 - p*v.^(p-1))*0.2;
+[T, K] = grid_discretisatie_khoek(v, p);
 
 n = round(sqrt(length(v))); v = reshape(v,n,n); 
 n = size(v,1) + 1;
-p = 1;
 k = v^p*65 + (1 - v^p)*0.2;
 T = T(:);
 
@@ -13,17 +14,39 @@ T = reshape(T,n,n);
 
 DK = zeros(n^2,(n-1)^2);
 
-for i = 2:n-2
-    for j = 2:n-2
-        north = dmean(k(i,j),k(i-1,j));
-        south = dmean(k(i,j),k(i+1,j));
-        east = dmean(k(i,j),k(i,j+1));
-        west = dmean(k(i,j),k(i,j-1));
-        
-        dK=[east+north, -east, 0, -north;
-            -west, west+north, -north, 0;
-            0, -south, south+west, -west;
-            -south, 0, -east, south+east;
+for i = 1:n-1
+    for j = 1:n-1
+        try
+            north = dmean(k(i,j),k(i-1,j));
+        catch
+            north = 0;
+        end
+        try
+            south = dmean(k(i,j),k(i+1,j));
+        catch
+            south = 0;
+        end
+        try
+            east = dmean(k(i,j),k(i,j+1));
+        catch
+            east = 0;
+        end
+        try
+            west = dmean(k(i,j),k(i,j-1));
+        catch
+            west = 0;
+        end
+            
+      
+%         dK=[east+north, -east, 0, -north;
+%             -west, west+north, -north, 0;
+%             0, -south, south+west, -west;
+%             -south, 0, -east, south+east;
+%            ];
+        dK=[south+west, -south, 0, -west;
+            -south, east+south, -east, 0;
+            0, -east, east+north, -north;
+            -west, 0, -north, west+north;
            ];
         
         Tij = [T(i+1,j) T(i+1,j+1) T(i,j+1) T(i,j)]';
@@ -37,7 +60,7 @@ for i = 2:n-2
 end
 
 cost_p = -lambda'*DK;
-cost_p = cost_p(:);
+cost_p = cost_p(:).*kder;
 % cost_p = reshape(cost_p,n-1,n-1);
 
 
