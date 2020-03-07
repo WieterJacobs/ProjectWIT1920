@@ -1,14 +1,14 @@
-function [T, K] = grid_discretisatie_khoek(v)
+function [T, K] = grid_discretisatie_khoek(v, p)
 % K*T = Q
 
-n = round(sqrt(length(v))); v = reshape(v,n,n); 
+n = round(sqrt(length(v)));
+v = reshape(v,n,n); 
 n = size(v,1) + 1;
 
 sizex = 0.01/2;
 sizez = 0.001;
 deltax = sizex/n;
-p = 1;
-k = v^p*65 + (1 - v^p)*0.2;
+k = v.^p*65 + (1 - v.^p)*0.2;
 K = zeros((n)^2);
 Q = zeros(n); Q = Q(:);
 
@@ -59,8 +59,8 @@ T = Ksparse\Q;
 % T = T(3:n-2,3:n-2);
 
     function k = mean(k1, k2)
-        k = (k1 + k2)/2;
-%         k = 2*k1*k2/(k1 + k2);
+%         k = (k1 + k2)/2;
+        k = 2*k1*k2/(k1 + k2);
     end
 
     function ij = pos(i,j)
