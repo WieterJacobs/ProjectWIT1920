@@ -51,10 +51,7 @@ template<typename scalar>
 		{
 			return( k_metal_ * v.pow(p_) + k_plastic_ * (1 - v.pow(p_)));
 		}
-		inline scalar conductivity_v() const
-		{
-			//todo
-		}
+		
 		
 		void set_K() {
 			DA k = conductivity(v_);
@@ -129,13 +126,20 @@ template<typename scalar>
 			DK_.setFromTriplets(coefficients.begin(), coefficients.end());
 		}
 	public:
-		plate(DA& v, scalar const size) :
+		inline DM conductivity_v() const &
+		{
+
+			return p_ * k_metal_ * v_.pow(p_ - 1) - p_ * k_plastic_ * v_.pow(p_ - 1);
+
+		}
+
+		plate(DA& v, scalar const size, scalar p) :
 			size_(size),
 			deltaz_(.001),
-			n_(v.rows()),
+			n_(v.rows()+1),
 			deltax_(size_ / n_),
 			N_(n_* n_),
-			p_(1),
+			p_(p),
 			v_(v),
 			Q_(N_),
 			K_(N_,N_),

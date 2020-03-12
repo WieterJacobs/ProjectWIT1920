@@ -15,13 +15,16 @@ private:
 	typedef Array<scalar, Dynamic, Dynamic> DA;
 	scalar cost_;
 	DR cost_p_;
-	void replace_plate(plate<scalar> new_plate) 
+	plate<scalar> current_plate_;
+	void adjoint()
 	{
-		cost_ = cost_f(new_plate.get_T());
+		cost_ = cost_f(current_plate_.get_T());
 		DV lambda;
-		lambda = new_plate.solve(new_plate.get_K().transpose(), cost_T(new_plate.get_T()).transpose());
-		cost_p_ = -new_plate.get_DK().transpose()*lambda;
-		std::cout << cost_p_ << std::endl;
+		lambda = current_plate_.solve(current_plate_.get_K().transpose(), cost_T(current_plate_.get_T()).transpose());
+		cost_p_ = -current_plate_.get_DK().transpose()*lambda;
+		DA  c_v = current_plate_.conductivity_v();
+		c_v.resizeLike(cost_p_);
+		cost_p_ = cost_p_.array() * c_v;
 	}
 	inline scalar cost_f(DA  T) const 
 	{
@@ -31,14 +34,11 @@ private:
 		return T.pow(15) * (std::pow(T.pow(16).sum(), -15. / 16.));
 	}
 public:
-	cost_function(plate<scalar> new_plate)
+
+	cost_function(double size, double p)
 	{
-		replace_plate(new_plate);
 	}
-	scalar cost() const {
-		return cost_;
-	}
-	DR derivative() {
-		return cost_p_;
+	double EvaluateWithGradient(const ) const {
+
 	}
 };
