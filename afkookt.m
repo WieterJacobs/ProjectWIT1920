@@ -48,14 +48,20 @@ for i = 1:n-1
             0, -east, east+north, -north;
             -west, 0, -north, west+north;
            ];
-        
+       
         Tij = [T(i+1,j) T(i+1,j+1) T(i,j+1) T(i,j)]';
         col = dK*Tij;
         
-        DK(pos(i+1,j),posk(i,j)) = col(1);
+        Dir = 1+round(.6*n):n+2;
+        
+        if ~(j == 1 && ismember(i+2,Dir))
+            DK(pos(i+1,j),posk(i,j)) = col(1);
+        end
         DK(pos(i+1,j+1),posk(i,j)) = col(2);
         DK(pos(i,j+1),posk(i,j)) = col(3);
-        DK(pos(i,j),posk(i,j)) = col(4);
+        if ~(j == 1 && ismember(i+1,Dir))
+            DK(pos(i,j),posk(i,j)) = col(4);
+        end
     end
 end
 
@@ -70,6 +76,7 @@ cost_p = cost_p(:).*kder;
      
     function dk = dmean(k1, k2)
        dk = 2*k2^2/(k1+k2)^2; 
+%        dk = .5; 
     end
 
     function ij = posk(i,j)
