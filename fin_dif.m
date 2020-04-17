@@ -1,10 +1,9 @@
-function cost_p = fin_dif(v,p)
+function cost_p = fin_dif(v,p,h)
 v = reshape(v,sqrt(length(v)),sqrt(length(v)));
 cost_p = zeros(size(v,1));
 for i = 1:length(v(:))
-    h = 0.0001;
     vv = v;
-    
+%     h = v(i)/10;
     vv(i) = v(i) + h;
     T1 = grid_discretisatie_khoek(vv(:),p);
     vv(i) = v(i) - h;
@@ -14,6 +13,7 @@ end
 cost_p = cost_p(:);
 end
 
-    function c = cost_T(T)
-        c = sum(T(:).^16)^(1/16);
-    end
+function c = cost_T(T)
+    pow = 16;
+    c = sum(T(:).^pow)^(1/pow);
+end

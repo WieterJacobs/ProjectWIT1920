@@ -1,7 +1,7 @@
 function [T, K] = grid_discretisatie_khoek(v, p)
 % K*T = Q
 
-n = round(sqrt(length(v)));
+n = sqrt(length(v));
 v = reshape(v,n,n); 
 n = size(v,1) + 1;
 
@@ -29,8 +29,8 @@ for i = 2:n-1
     end
 end
 
-Dir = 1+round(.3*n):n-round(.3*n);
-Dir = 1+round(.6*n):n;
+% Dir = round(.3*(n)):round(.7*(n));
+Dir = 1+round(.6*(n-2)):n-2;
 
 for j = 1:n
     K(pos(1,j),pos(1,j)) = 1;
@@ -42,12 +42,15 @@ for i = 2:n-1
     if ismember(i, Dir)
         K(pos(i,1),pos(i,1)) = 1;
         Q(pos(i,1)) = 293;
+        K(pos(i,n),pos(i,n)) = 1;
+        K(pos(i,n),pos(i,n-1)) = -1;
+%         Q(pos(i,n)) = 293;
     else
         K(pos(i,1),pos(i,1)) = 1;
         K(pos(i,1),pos(i,2)) = -1;
+        K(pos(i,n),pos(i,n)) = 1;
+        K(pos(i,n),pos(i,n-1)) = -1;
     end
-    K(pos(i,n),pos(i,n)) = 1;
-    K(pos(i,n),pos(i,n-1)) = -1;
 end
 
 
@@ -59,8 +62,8 @@ T = Ksparse\Q;
 % T = T(3:n-2,3:n-2);
 
     function k = mean(k1, k2)
-%         k = (k1 + k2)/2;
         k = 2*k1*k2/(k1 + k2);
+%         k = (k1 + k2)/2;
     end
 
     function ij = pos(i,j)
