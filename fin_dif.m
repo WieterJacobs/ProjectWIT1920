@@ -1,6 +1,6 @@
 function cost_p = fin_dif(v,p)
 v = reshape(v,sqrt(length(v)),sqrt(length(v)));
-cost_p = zeros(size(v,1));
+cost_p = zeros(size(v,1)); %
 for i = 1:length(v(:))
     h = 0.0001;
     vv = v;
