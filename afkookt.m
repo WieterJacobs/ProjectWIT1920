@@ -1,12 +1,12 @@
 function cost_p = afkookt(v,p)
 
 v = v(:);
-kder = p*v.^(p-1)*65 + (1 - p*v.^(p-1))*0.2;
+kder = p*v.^(p-1)*(65-0.2);
 [T, K] = grid_discretisatie_khoek(v, p);
 
 n = round(sqrt(length(v))); v = reshape(v,n,n); 
 n = size(v,1) + 1;
-k = v^p*65 + (1 - v^p)*0.2;
+k = v.^p*65 + (1 - v.^p)*0.2;
 T = T(:);
 
 lambda = K'\cost_T(T)';
@@ -48,14 +48,27 @@ for i = 1:n-1
             0, -east, east+north, -north;
             -west, 0, -north, west+north;
            ];
-        
+       
         Tij = [T(i+1,j) T(i+1,j+1) T(i,j+1) T(i,j)]';
         col = dK*Tij;
         
-        DK(pos(i+1,j),posk(i,j)) = col(1);
-        DK(pos(i+1,j+1),posk(i,j)) = col(2);
-        DK(pos(i,j+1),posk(i,j)) = col(3);
-        DK(pos(i,j),posk(i,j)) = col(4);
+        if j ~= 1
+            if i ~= 1
+                DK(pos(i,j),posk(i,j)) = col(4);
+            end
+            if i ~= n - 1
+                DK(pos(i+1,j),posk(i,j)) = col(1);
+            end
+        end
+        if j ~= n-1
+            if i ~= 1
+                DK(pos(i,j+1),posk(i,j)) = col(3);
+            end
+            if i ~= n-1
+                DK(pos(i+1,j+1),posk(i,j)) = col(2);
+            end
+        end
+
     end
 end
 
@@ -65,11 +78,13 @@ cost_p = cost_p(:).*kder;
 
 
     function c = cost_T(T)
-        c = ((T.^15).*(sum(T.^16)).^(-15/16))';
+        pow = 16;
+        c = ((T.^(pow-1)).*(sum(T.^pow)).^(-(pow-1)/pow))';
     end
      
     function dk = dmean(k1, k2)
        dk = 2*k2^2/(k1+k2)^2; 
+%        dk = .5; 
     end
 
     function ij = posk(i,j)
