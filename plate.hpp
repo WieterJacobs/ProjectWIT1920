@@ -28,7 +28,7 @@ template<typename scalar>
 		int N_;
 		mutable scalar p_;
 		DA v_;
-		scalar ldir_ = (.6 * n_);
+		int ldir_ = round(.6 * n_);
 		mutable DV T_;
 		DV Q_;
 		SM K_;
@@ -107,20 +107,36 @@ template<typename scalar>
 			TV coefficients;
 			Matrix4d dK;//Verander hier misschien Matrix4d voor elegantie (geen gebruik scalar)
 			Vector4d temp;//same
-			for (int i = 1; i < n_ - 2; ++i)
+			scalar north;
+			scalar east;
+			scalar south;
+			scalar west;
+			for (int i = 0; i < n_ - 1; ++i)
 			{
-				for (int j = 1; j < n_ - 2; ++j)
+				for (int j = 0; j < n_ - 1; ++j)
 				{
-					dK << dmeanh(k(i, j), k(i + 1, j)) + dmeanh(k(i, j), k(i, j - 1)), -dmeanh(k(i, j), k(i + 1, j)), 0, -dmeanh(k(i, j), k(i, j - 1)),
-						-dmeanh(k(i, j), k(i + 1, j)), dmeanh(k(i, j), k(i + 1, j)) + dmeanh(k(i, j), k(i, j + 1)), -dmeanh(k(i, j), k(i, j + 1)), 0,
-						0, -dmeanh(k(i, j), k(i, j + 1)), dmeanh(k(i, j), k(i, j + 1)) + dmeanh(k(i, j), k(i - 1, j)), -dmeanh(k(i, j), k(i - 1, j)),
-						-dmeanh(k(i, j), k(i, j - 1)), 0, -dmeanh(k(i, j), k(i - 1, j)), dmeanh(k(i, j), k(i, j - 1)) + dmeanh(k(i, j), k(i - 1, j));
+					if (i>0) {north = dmeanh(k(i, j), k(i - 1, j)); }
+					else { north = 0; }
+					if (j<n_-2) { east = dmeanh(k(i, j), k(i, j + 1));}
+					else { east = 0; }
+					if (i<n_-2) { south = dmeanh(k(i, j), k(i + 1, j)); }
+					else { south = 0; }
+					if (j>0) { west = dmeanh(k(i, j), k(i, j - 1)); } 
+					else { west = 0; } 
+					dK << south+west, -south, 0, -west,
+						-south, east+south, -east, 0,
+						0, -east, east+north, -north,
+						-west, 0, -north, west+north;
 					temp << T_(pos(i + 1, j)), T_(pos(i + 1, j + 1)), T_(pos(i, j + 1)), T_(pos(i, j));
 					temp = dK * temp;
-					coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
+					if (!(j == 0 && i > ldir_ -2)) {
+						coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
+					}
 					coefficients.push_back(T(pos(i + 1, j + 1), posv(i, j), temp(1)));
 					coefficients.push_back(T(pos(i, j + 1), posv(i, j), temp(2)));
-					coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
+					if (!(j == 0 && i >= ldir_ -2)) {
+						coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
+					}
 				}
 			}
 			DK_.setFromTriplets(coefficients.begin(), coefficients.end());
@@ -133,7 +149,7 @@ template<typename scalar>
 
 		}
 
-		plate(DA& v, scalar const size, scalar p) :
+		plate(const DA& v, scalar const size, scalar p) :
 			size_(size),
 			deltaz_(.001),
 			n_(v.rows()+1),
