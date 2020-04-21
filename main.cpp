@@ -6,6 +6,7 @@
 #include "cost_function.hpp"
 #include <nlopt.hpp>
 #include <iomanip>
+#include <chrono>
 using namespace Eigen;
 int counter = 0;
 
@@ -15,8 +16,6 @@ double g(unsigned n, const double* x, double* grad, void* g_data) {
 		grad[i] = 1. / n;
 		constraint += x[i];
 	}
-	
-
 	constraint = constraint / n - 0.4;
 	std::cout << "distance to constraint: " << -constraint << std::endl;
 	return constraint;//zet juist
@@ -25,7 +24,6 @@ double f(unsigned n, const double* x, double* grad, void* f_data) {
 	cost_function<double>* cost = static_cast<cost_function<double>*>(f_data);
 	cost->update_cost(x);
 	for (int i = 0; i < n; i++) {
-		//std::cout << x[i] << " ";
 		grad[i] = cost->get_cost_v()[i];
 	}
 	double f_val= cost->get_cost();
@@ -36,7 +34,7 @@ double f(unsigned n, const double* x, double* grad, void* f_data) {
 int main() {
 
 	std::cout << std::setprecision(6);
-	int n = 50;
+	int n = 300;
 	double size = 0.01;
 	
 	ArrayXXd v;
@@ -49,48 +47,54 @@ int main() {
 	nlopt_set_upper_bounds1(opt, 1.);
 	cost_function<double>* cost = new cost_function<double>(n, size, p);
 	nlopt_set_min_objective(opt, f, cost);
-	nlopt_add_inequality_constraint(opt, g, NULL, 1e-8);
-	nlopt_set_xtol_rel(opt, 1e-1);
-	nlopt_set_ftol_abs(opt, 0.001);
+	nlopt_add_inequality_constraint(opt, g, NULL, 0);
+	nlopt_set_xtol_rel(opt, 1e-2);
+	nlopt_set_ftol_rel(opt, 1e-4);
 	double minf;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
 	std::cout << "---------" << "p = " << p << "--------" << std::endl;
 	nlopt_optimize(opt, v_data, &minf);
 
-	p = 2;
+	p = 2; 
 	std::cout << "---------" << "p = " << p << "--------" << std::endl;
-	cost = new cost_function<double>(n, size, p);
+	cost->set_p(p);
 	nlopt_set_min_objective(opt, f, cost);
-	nlopt_set_xtol_rel(opt, 1e-1);
-	nlopt_set_ftol_abs(opt, 0.001);
+	nlopt_set_xtol_rel(opt, 1e-4);
+	nlopt_set_ftol_rel(opt, 1e-7);
 	nlopt_optimize(opt, v_data, &minf);
 	
 	p = 3;
 	std::cout << "---------" << "p = " << p << "--------" << std::endl;
-	cost = new cost_function<double>(n, size, p);
+	cost->set_p(p);
 	nlopt_set_min_objective(opt, f, cost);
-	nlopt_set_xtol_rel(opt, 1e-3);
-	nlopt_set_ftol_abs(opt, 0.00001);
+	nlopt_set_xtol_rel(opt, 1e-5);
+	nlopt_set_ftol_rel(opt, 1e-8);
 	nlopt_optimize(opt, v_data, &minf);
-
+	auto stop = std::chrono::high_resolution_clock::now();
+	nlopt_destroy(opt);
+	delete cost;
+	
 	ArrayXXd v_tl = Map<ArrayXXd>(v_data, n, n);
 	ArrayXXd v_bl = v_tl.block(0, 0, n - 1, n).colwise().reverse();
 	ArrayXXd v_tr = v_tl.block(0, 0, n, n - 1).rowwise().reverse();
 	ArrayXXd v_br = v_tl.block(0, 0, n-1, n - 1).reverse();
-	//std::cout << v_tl << std::endl;
-	//std::cout << v_bl << std::endl;
-	//std::cout << v_tr << std::endl;
-	//std::cout << v_br << std::endl;
 	ArrayXXd result(2*n - 1, 2*n - 1);
+	//delete v_data;
 	result.block(0,0,n,n)<<v_tl;
 	result.block(0, n, n, n - 1) << v_tr;
 	result.block(n, 0, n - 1, n) << v_bl;
 	result.block(n, n, n - 1, n - 1) << v_br;
-	printf("found minimum: \n");
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	std::cout << "minimum found in " << duration.count()*1e-6 << " seconds" << std::endl;
 	
 	//test stuff
 
-	n = 5;
-	ArrayXXd v_test = ArrayXXd::Constant(n, n, 0.35);
+	n = 20;
+	ArrayXXd v_test = ArrayXXd::Constant(n, n, 0.4);
+	v_test.setRandom();
+	v_test = (v_test + 1) / 2;
 	double* v_test_data = v_test.data();
 	p = 3;
 	size = 0.01;
@@ -102,12 +106,16 @@ int main() {
 	MatrixXd DK = heated_plate.get_DK();
 	MatrixXd T = heated_plate.get_T();
 
+
+	//writing to file
 	std::ofstream myfile;
 	myfile.precision(17);
-	myfile.open("result_average.txt");
+	myfile.open("result_250.txt");
 	myfile << result << std::endl;
 	myfile.close();
-
+	myfile.open("v_matrix.txt");
+	myfile << v_test << std::endl;
+	myfile.close();
 	myfile.open("K_matrix.txt");
 	myfile << MatrixXd(K) << std::endl;
 	myfile.close();
@@ -120,5 +128,6 @@ int main() {
 	myfile.open("cost_v_matrix.txt");
 	myfile << cost_v << std::endl;
 	myfile.close();
+	std::cout << "end" << std::endl;
 	return 0;
 }

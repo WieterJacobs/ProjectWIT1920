@@ -28,7 +28,8 @@ template<typename scalar>
 		int N_;
 		mutable scalar p_;
 		DA v_;
-		int ldir_ = round(.6 * n_);
+		int ldir_ =round(.6 * (n_-2));
+		int udir_ = n_-1;
 		mutable DV T_;
 		DV Q_;
 		SM K_;
@@ -84,11 +85,12 @@ template<typename scalar>
 			}
 			for (int i = 1; i < n_ - 1; ++i)
 			{
-				if (i >= ldir_)
+				if (i >= ldir_ && i<udir_)//vraag over stellen aan wieter
 				{
 					coefficients.push_back(T(pos(i, 0), pos(i, 0), 1));
 					Q_(pos(i, 0)) = 293;
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 1), 1));
+					//Q_(pos(i, n_-1)) = 293;
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 2), -1));
 				}
 				else
@@ -105,8 +107,8 @@ template<typename scalar>
 		{
 			DA k = conductivity(v_);
 			TV coefficients;
-			Matrix4d dK;//Verander hier misschien Matrix4d voor elegantie (geen gebruik scalar)
-			Vector4d temp;//same
+			Matrix<scalar,4,4> dK;
+			Matrix<scalar,4,1> temp;
 			scalar north;
 			scalar east;
 			scalar south;
@@ -129,6 +131,24 @@ template<typename scalar>
 						-west, 0, -north, west+north;
 					temp << T_(pos(i + 1, j)), T_(pos(i + 1, j + 1)), T_(pos(i, j + 1)), T_(pos(i, j));
 					temp = dK * temp;
+
+					if (j != 0) {
+						if (i != 0) {
+							coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
+						}
+						if (i != n_-2 ) {
+							coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
+						}
+					}
+					if (j != n_-2) {
+						if (i != 0) {
+							coefficients.push_back(T(pos(i, j + 1), posv(i, j), temp(2)));
+						}
+						if (i != n_-2) {
+							coefficients.push_back(T(pos(i + 1, j + 1), posv(i, j), temp(1)));
+						}
+					}
+					/*
 					if (!(j == 0 && i > ldir_ -2)) {
 						coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
 					}
@@ -137,6 +157,7 @@ template<typename scalar>
 					if (!(j == 0 && i >= ldir_ -2)) {
 						coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
 					}
+					*/
 				}
 			}
 			DK_.setFromTriplets(coefficients.begin(), coefficients.end());

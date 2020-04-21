@@ -37,12 +37,10 @@ private:
 	}
 	inline scalar cost_f(DA  T) const 
 	{
-		return T.sum();
-		//return std::pow(T.pow(16).sum(), 1. / 16.);
+		return std::pow(T.pow(16).sum(), 1. / 16.);
 	}
 	inline DV cost_T(DA T) const {
-		return T.pow(0);
-		//return T.pow(15) * (std::pow(T.pow(16).sum(), -15. / 16.));
+		return T.pow(15) * (std::pow(T.pow(16).sum(), -15. / 16.));
 	}
 	
 public:
@@ -55,6 +53,7 @@ public:
 		plate<scalar> new_plate = plate<scalar>(v, size_, p_);
 		adjoint(new_plate);
 	}
+	void set_p(double p) { p_ = p; }
 	double get_cost() { return cost_; }
 	double* get_cost_v() {return cost_v_.data(); }
 };
