@@ -1,5 +1,5 @@
 Year: 2019-2020
-Project: heat or pear
+Project: heat
 Author 1: Pieter Jan, Houben
 Author 2: Wieter, Jacobs
 Author 3: Alexander, Lescroart
