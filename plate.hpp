@@ -28,7 +28,8 @@ template<typename scalar>
 		int N_;
 		mutable scalar p_;
 		DA v_;
-		scalar ldir_ = (.6 * n_);
+		int ldir_ =round(.6 * (n_-2));
+		int udir_ = n_-1;
 		mutable DV T_;
 		DV Q_;
 		SM K_;
@@ -51,10 +52,7 @@ template<typename scalar>
 		{
 			return( k_metal_ * v.pow(p_) + k_plastic_ * (1 - v.pow(p_)));
 		}
-		inline scalar conductivity_v() const
-		{
-			//todo
-		}
+		
 		
 		void set_K() {
 			DA k = conductivity(v_);
@@ -87,11 +85,12 @@ template<typename scalar>
 			}
 			for (int i = 1; i < n_ - 1; ++i)
 			{
-				if (i >= ldir_)
+				if (i >= ldir_ && i<udir_)//vraag over stellen aan wieter
 				{
 					coefficients.push_back(T(pos(i, 0), pos(i, 0), 1));
 					Q_(pos(i, 0)) = 293;
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 1), 1));
+					//Q_(pos(i, n_-1)) = 293;
 					coefficients.push_back(T(pos(i, n_ - 1), pos(i, n_ - 2), -1));
 				}
 				else
@@ -108,34 +107,76 @@ template<typename scalar>
 		{
 			DA k = conductivity(v_);
 			TV coefficients;
-			Matrix4d dK;//Verander hier misschien Matrix4d voor elegantie (geen gebruik scalar)
-			Vector4d temp;//same
-			for (int i = 1; i < n_ - 2; ++i)
+			Matrix<scalar,4,4> dK;
+			Matrix<scalar,4,1> temp;
+			scalar north;
+			scalar east;
+			scalar south;
+			scalar west;
+			for (int i = 0; i < n_ - 1; ++i)
 			{
-				for (int j = 1; j < n_ - 2; ++j)
+				for (int j = 0; j < n_ - 1; ++j)
 				{
-					dK << dmeanh(k(i, j), k(i + 1, j)) + dmeanh(k(i, j), k(i, j - 1)), -dmeanh(k(i, j), k(i + 1, j)), 0, -dmeanh(k(i, j), k(i, j - 1)),
-						-dmeanh(k(i, j), k(i + 1, j)), dmeanh(k(i, j), k(i + 1, j)) + dmeanh(k(i, j), k(i, j + 1)), -dmeanh(k(i, j), k(i, j + 1)), 0,
-						0, -dmeanh(k(i, j), k(i, j + 1)), dmeanh(k(i, j), k(i, j + 1)) + dmeanh(k(i, j), k(i - 1, j)), -dmeanh(k(i, j), k(i - 1, j)),
-						-dmeanh(k(i, j), k(i, j - 1)), 0, -dmeanh(k(i, j), k(i - 1, j)), dmeanh(k(i, j), k(i, j - 1)) + dmeanh(k(i, j), k(i - 1, j));
+					if (i>0) {north = dmeanh(k(i, j), k(i - 1, j)); }
+					else { north = 0; }
+					if (j<n_-2) { east = dmeanh(k(i, j), k(i, j + 1));}
+					else { east = 0; }
+					if (i<n_-2) { south = dmeanh(k(i, j), k(i + 1, j)); }
+					else { south = 0; }
+					if (j>0) { west = dmeanh(k(i, j), k(i, j - 1)); } 
+					else { west = 0; } 
+					dK << south+west, -south, 0, -west,
+						-south, east+south, -east, 0,
+						0, -east, east+north, -north,
+						-west, 0, -north, west+north;
 					temp << T_(pos(i + 1, j)), T_(pos(i + 1, j + 1)), T_(pos(i, j + 1)), T_(pos(i, j));
 					temp = dK * temp;
-					coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
+
+					if (j != 0) {
+						if (i != 0) {
+							coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
+						}
+						if (i != n_-2 ) {
+							coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
+						}
+					}
+					if (j != n_-2) {
+						if (i != 0) {
+							coefficients.push_back(T(pos(i, j + 1), posv(i, j), temp(2)));
+						}
+						if (i != n_-2) {
+							coefficients.push_back(T(pos(i + 1, j + 1), posv(i, j), temp(1)));
+						}
+					}
+					/*
+					if (!(j == 0 && i > ldir_ -2)) {
+						coefficients.push_back(T(pos(i + 1, j), posv(i, j), temp(0)));
+					}
 					coefficients.push_back(T(pos(i + 1, j + 1), posv(i, j), temp(1)));
 					coefficients.push_back(T(pos(i, j + 1), posv(i, j), temp(2)));
-					coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
+					if (!(j == 0 && i >= ldir_ -2)) {
+						coefficients.push_back(T(pos(i, j), posv(i, j), temp(3)));
+					}
+					*/
 				}
 			}
 			DK_.setFromTriplets(coefficients.begin(), coefficients.end());
 		}
 	public:
-		plate(DA& v, scalar const size) :
+		inline DM conductivity_v() const &
+		{
+
+			return p_ * k_metal_ * v_.pow(p_ - 1) - p_ * k_plastic_ * v_.pow(p_ - 1);
+
+		}
+
+		plate(const DA& v, scalar const size, scalar p) :
 			size_(size),
 			deltaz_(.001),
-			n_(v.rows()),
+			n_(v.rows()+1),
 			deltax_(size_ / n_),
 			N_(n_* n_),
-			p_(1),
+			p_(p),
 			v_(v),
 			Q_(N_),
 			K_(N_,N_),
