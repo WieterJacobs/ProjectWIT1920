@@ -4,6 +4,7 @@
 #include <numeric>
 #include <iostream>
 #include <cmath>
+#include <chrono>
 
 using namespace Eigen;
 
@@ -217,5 +218,12 @@ template<typename scalar>
 			DV x(rhs.rows());
 			x = solver.solve(rhs);
 			return(x);
+		}
+		auto simulationTime() {
+			auto start = std::chrono::high_resolution_clock::now();
+			set_K();
+			T_ = solve(K_, Q_);
+			auto stop = std::chrono::high_resolution_clock::now();
+			return std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 		}
 };

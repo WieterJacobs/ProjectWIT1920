@@ -34,7 +34,7 @@ double f(unsigned n, const double* x, double* grad, void* f_data) {
 int main() {
 
 	std::cout << std::setprecision(6);
-	int n = 300;
+	int n = 20;
 	double size = 0.01;
 	
 	ArrayXXd v;
@@ -81,6 +81,7 @@ int main() {
 	ArrayXXd v_tr = v_tl.block(0, 0, n, n - 1).rowwise().reverse();
 	ArrayXXd v_br = v_tl.block(0, 0, n-1, n - 1).reverse();
 	ArrayXXd result(2*n - 1, 2*n - 1);
+	delete[] v_data;
 	//delete v_data;
 	result.block(0,0,n,n)<<v_tl;
 	result.block(0, n, n, n - 1) << v_tr;
@@ -90,7 +91,6 @@ int main() {
 	std::cout << "minimum found in " << duration.count()*1e-6 << " seconds" << std::endl;
 	
 	//test stuff
-
 	n = 20;
 	ArrayXXd v_test = ArrayXXd::Constant(n, n, 0.4);
 	v_test.setRandom();
@@ -105,12 +105,21 @@ int main() {
 	MatrixXd K = heated_plate.get_K();
 	MatrixXd DK = heated_plate.get_DK();
 	MatrixXd T = heated_plate.get_T();
+	delete[] v_test_data;
 
+	//simulation speed test
+	n = 300;
+	ArrayXXd v_test_2 = ArrayXXd::Constant(n, n, 0.4);
+	v_test_2.setRandom();
+	v_test_2 = (v_test_2 + 1) / 2;
+	plate<double> heated_plate_2 = plate<double>(v_test_2, size, p);
+	duration = heated_plate_2.simulationTime();
+	std::cout << "Simulation speed test of size " << n << " completed in " << duration.count()*1e-6 << " seconds." << std::endl;
 
 	//writing to file
 	std::ofstream myfile;
 	myfile.precision(17);
-	myfile.open("result_250.txt");
+	myfile.open("result.txt");
 	myfile << result << std::endl;
 	myfile.close();
 	myfile.open("v_matrix.txt");
