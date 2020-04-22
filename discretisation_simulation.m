@@ -3,7 +3,7 @@ function [error,rico] = discretisation_simulation(m,p,method) %m is number
                                                         %method is to test
                                                         %either sin, sin2
                                                         %or sincos
-    gridsize = linspace(21,20*(m+1)+1,m);
+    gridsize = linspace(21,10*(m+1)+1,m);
     result = zeros(m,1);
     ricos = zeros(m-1,1);
     index = 1;
